@@ -15,7 +15,7 @@ program template_fitting
   integer(i4b)        :: nside,ordering,nmaps,npix,fg,order_map,order_temp
   integer(i4b)        :: nside_fg,ordering_fg,nmaps_fg,npix_fg
   character(len=128)  :: band_file,residual_map,mask_file,temps,maps,offset_file,gain_file
-  character(len=128)  :: no_fg_map, fg_map, dust_amp, foreground, version, output
+  character(len=128)  :: no_fg_map, fg_map, dust_amp, foreground, version, output, arg1, arg2, arg3, arg4
   character(len=2)    :: number
   real(dp)            :: chisq,sum1,sum2,amp,count
   real(dp)            :: nullval
@@ -42,7 +42,7 @@ program template_fitting
   fgs(8) = 'co-217'
   fgs(9) = 'co-353'
 
-  if  (iargc() /=5) then
+  if  (iargc() /=4) then
      write(*,*) "Usage:"
      write(*,*) 'fittemps [Number of bands] [foreground number] [template band number (ex. "34")] [version tag (ex. "v1")]'
      write(*,*)
@@ -51,10 +51,15 @@ program template_fitting
      stop
   endif
 
-  call getarg(2, total)
-  call getarg(3, fg)
-  call getarg(4, band)
-  call getarg(5,version)
+  call getarg(1, arg1)
+  read(arg1,*) total
+  call getarg(2, arg2)
+  read(arg2,*) fg
+  call getarg(3, arg3)
+  read(arg3,*) band
+  call getarg(4, arg4)
+  read(arg4,*) version
+
 
   output = 'amplitudes/' // trim(version) // '/'
 
@@ -195,7 +200,7 @@ program template_fitting
   nlheader = size(header)
 
   write(*,*) ' Let the fitting begin!'
-
+  call system('rm amplitudes/' // trim(version) // '/maps/*.fits')
   dust_amp    = trim(output) // 'dust_amplitudes/dust_amplitudes.dat'
 
   ! Begin the template fitting process
