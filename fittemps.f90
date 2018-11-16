@@ -42,22 +42,19 @@ program template_fitting
   fgs(8) = 'co-217'
   fgs(9) = 'co-353'
 
-  ! Read the info for choosing which foreground and band template you wish to fit:
+  if  (iargc() /=5) then
+     write(*,*) "Usage:"
+     write(*,*) 'fittemps [Number of bands] [foreground number] [template band number (ex. "34")] [version tag (ex. "v1")]'
+     write(*,*)
+     write(*,*) 'Foregrounds: cmb = 1, ame = 2, ff = 3, synch = 4, dust = 5, hcn = 6'
+     write(*,*) '             co-1 = 7, co-2 = 8, co-3 = 9 '
+     stop
+  endif
 
-  print*,'How many bands are to be analyzed?'
-  read (*,*) total
-
-  write(*,*) 'Which foreground template would you like to fit? '
-  write(*,*) ''
-  write(*,*) 'Foregrounds: cmb = 1, ame = 2, ff = 3, synch = 4, dust = 5, hcn = 6'
-  write(*,*) '             co-1 = 7, co-2 = 8, co-3 = 9 '
-  read (*,*) fg
-
-  print*, 'Which dust template do you want to fit (band #)?'
-  read (*,*) band
-
-  print*, 'Which template fitting version is this?'
-  read (*,*) version
+  call getarg(2, total)
+  call getarg(3, fg)
+  call getarg(4, band)
+  call getarg(5,version)
 
   output = 'amplitudes/' // trim(version) // '/'
 
