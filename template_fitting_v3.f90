@@ -15,7 +15,7 @@ program template_fitting
   integer(i4b)        :: nside,ordering,nmaps,npix,fg,order_map,order_temp
   integer(i4b)        :: nside_fg,ordering_fg,nmaps_fg,npix_fg
   character(len=128)  :: band_file,residual_map,mask_file,temps,maps,offset_file,gain_file
-  character(len=128)  :: no_fg_map, fg_map, dust_amp, foreground, version, amplitudes,map_folder
+  character(len=128)  :: no_fg_map, fg_map, dust_amp, foreground, version, output
   character(len=2)    :: number
   real(dp)            :: chisq,sum1,sum2,amp,count
   real(dp)            :: nullval
@@ -42,13 +42,6 @@ program template_fitting
   fgs(8) = 'co-217'
   fgs(9) = 'co-353'
 
-  temps       = '/mn/stornext/d14/Planck1/daniher/data/template_fitting/npipe6v20/templates/'
-  band_file   = '/mn/stornext/d14/Planck1/daniher/data/template_fitting/npipe6v20/bands.txt'
-  mask_file   = '/mn/stornext/d14/Planck1/daniher/data/template_fitting/npipe6v20/masks/fg_mask.fits'
-  maps        = '/mn/stornext/d14/Planck1/daniher/data/template_fitting/npipe6v20/maps/'
-  offset_file = '/mn/stornext/d14/Planck1/daniher/data/template_fitting/npipe6v20/scatter_offset.dat'
-  gain_file   = '/mn/stornext/d14/Planck1/daniher/data/template_fitting/npipe6v20/gains.dat'
-
   ! Read the info for choosing which foreground and band template you wish to fit:
 
   print*,'How many bands are to be analyzed?'
@@ -63,16 +56,21 @@ program template_fitting
   print*, 'Which dust template do you want to fit (band #)?'
   read (*,*) band
 
-  print* 'Which template fitting version is this?'
+  print*, 'Which template fitting version is this?'
   read (*,*) version
 
-  amplitudes = 'amplitudes' // '_' // trim(version) // '/'
+  output = 'amplitudes/' // trim(version) // '/'
 
-  call system('mkdir -p' // trim(amplitudes) )
-  call system('mkdir -p' // trim(amplitudes) // 'dust_amplitudes/')
-  call system('mkdir -p' // trim(amplitudes) // 'maps/')
+  call system('mkdir -p amplitudes/' // trim(version) // '/dust_amplitudes/')
+  call system('mkdir -p amplitudes/' // trim(version) // '/maps/')
+  call system('mkdir -p templates/'  // trim(version) // '/' )
   
-  dust_amp    = trim(amplitudes) // 'dust_amplitudes/dust_amplitudes.dat'
+  temps       = 'templates/' // trim(version) // '/'
+  band_file   = 'bands.txt'
+  mask_file   = 'masks/fg_mask.fits'
+  maps        = 'maps/'
+  offset_file = 'offset_'//trim(version)//'.dat'
+  gain_file   = 'gains_'//trim(version)//'.dat'
 
   allocate(bands(total),gains(total),offsets(total))
   allocate(templates(9,total))
@@ -201,15 +199,17 @@ program template_fitting
 
   write(*,*) ' Let the fitting begin!'
 
+  dust_amp    = trim(output) // 'dust_amplitudes/dust_amplitudes.dat'
+
   ! Begin the template fitting process
   open(35,file=dust_amp)
   do i = 1,9
 
      ! Initializing the input/output maps and foreground templates
      write(number,10) i
-     no_fg_map    = trim(amplitudes) // 'maps/nofg_band0'// trim(number) //'.fits'
-     fg_map       = trim(amplitudes) // 'maps/'//trim(foreground) //'_band0'// trim(number) //'.fits'
-     residual_map = trim(amplitudes) // 'maps/no_' // trim(foreground) // '_band0'// trim(number) //'.fits'
+     no_fg_map    = trim(output) // 'maps/nofg_band0'// trim(number) //'.fits'
+     fg_map       = trim(output) // 'maps/'//trim(foreground) //'_band0'// trim(number) //'.fits'
+     residual_map = trim(output) // 'maps/no_' // trim(foreground) // '_band0'// trim(number) //'.fits'
 
      call read_bintab(trim(maps) // bands(i), raw_map, npix, nmaps, nullval, anynull, header=header)
      l=getsize_fits(trim(maps) // bands(i),nside=nside,ordering=order_map,nmaps=nmaps)
@@ -325,9 +325,9 @@ program template_fitting
 
      ! Initializing the input/output maps and foreground templates
      write(number,11) i
-     no_fg_map    = trim(amplitudes) // 'maps/nofg_band'// trim(number) //'.fits'
-     fg_map       = trim(amplitudes) // 'maps/'//trim(foreground) //'_band0'// trim(number) //'.fits'
-     residual_map = trim(amplitudes) // 'maps/no_' // trim(foreground) // '_band0'// trim(number) //'.fits'
+     no_fg_map    = trim(output) // 'maps/nofg_band'// trim(number) //'.fits'
+     fg_map       = trim(output) // 'maps/'//trim(foreground) //'_band'// trim(number) //'.fits'
+     residual_map = trim(output) // 'maps/no_' // trim(foreground) // '_band'// trim(number) //'.fits'
 
      call read_bintab(trim(maps) // bands(i), raw_map, npix, nmaps, nullval, anynull, header=header)
      l=getsize_fits(trim(maps) // bands(i),nside=nside,ordering=order_map,nmaps=nmaps)
