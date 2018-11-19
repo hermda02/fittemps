@@ -42,7 +42,7 @@ program template_fitting
   fgs(8) = 'co-217'
   fgs(9) = 'co-353'
 
-  if  (iargc() /=4) then
+  if  (iargc() < 4) then
      write(*,*) "Usage:"
      write(*,*) 'fittemps [Number of bands] [foreground #] [template band # (ex. "34")]'
      write(*,*) '          [version tag (ex. "v1")] [Foreground # to skip subtracting](optional)' 
