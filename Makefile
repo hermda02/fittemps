@@ -21,4 +21,4 @@ temp_fit: $(OBJS)
 # Cleaning command
 .PHONY: clean
 clean:
-	rm *.o *~ temp_fit
+	rm *.o *~ fittemps
