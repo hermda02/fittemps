@@ -60,7 +60,6 @@ program template_fitting
   call getarg(4, arg4)
   read(arg4,*) version
 
-
   output = 'amplitudes/' // trim(version) // '/'
 
   call system('mkdir -p amplitudes/' // trim(version) // '/dust_amplitudes/')
@@ -272,21 +271,6 @@ program template_fitting
      call write_bintab(new_map, npix, nmaps, header, nlheader, no_fg_map)
 
      ! Computes average of dust_template weights (per pixel)
-     ! -----------------------------------------------------
-     ! Here we will compute a find the weight for the minimized chi-square distribution.
-     ! The total chi-square takes the form:
-     !
-     !    chi^2 = sum ((map - amplitude*template)**2/rms**2)
-     !
-     ! So to find the minimized value (since there's only one free parameter), 
-     ! we take the derivative wrt a (amplitude) which gives us:
-     !
-     !     sum((temp*map)/rms**2)
-     ! a = ----------------------
-     !     sum((temp**2)/rms**2)
-     !
-     ! But because rms is the same at each pixel, we don't need to calculate?
-     
      sum1  = 0.d0
      sum2  = 0.d0
      do k=1,nmaps
