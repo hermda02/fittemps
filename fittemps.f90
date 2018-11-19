@@ -268,8 +268,9 @@ program template_fitting
      write(*,*) 'Fitting band 0'// trim(number)
 
      do k = 1, nmaps
+        write(*,*) i, gains(i), nmaps
         do j = 0, npix-1
-           new_map(j,k) = gains(i)*raw_map(j,k)-offsets(i)
+           new_map(j,k) =  raw_map(j,k)/gains(i)-offsets(i)
            do l=1,9
               if (l == skip) then
                  cycle
@@ -375,8 +376,10 @@ program template_fitting
      write(*,*) 'Fitting band '// trim(number)
 
      do k = 1, nmaps
+        write(*,*) i, gains(i), nmaps
         do j = 0, npix-1
-           new_map(j,k) = gains(i)*raw_map(j,k)-offsets(i)
+
+           new_map(j,k) = raw_map(j,k)/gains(i)-offsets(i)
            do l=1,9
               if (l == skip) then
                  cycle
