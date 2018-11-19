@@ -11,11 +11,11 @@ program template_fitting
 
   ! Try to make it work for a single map first:
 
-  integer(i4b)        :: i,j,k,l,total,nlheader,band,temp
+  integer(i4b)        :: i,j,k,l,total,nlheader,band,temp,skip
   integer(i4b)        :: nside,ordering,nmaps,npix,fg,order_map,order_temp
   integer(i4b)        :: nside_fg,ordering_fg,nmaps_fg,npix_fg
   character(len=128)  :: band_file,residual_map,mask_file,temps,maps,offset_file,gain_file
-  character(len=128)  :: no_fg_map, fg_map, dust_amp, foreground, version, output, arg1, arg2, arg3, arg4
+  character(len=128)  :: no_fg_map, fg_map, dust_amp, foreground, version, output, arg1, arg2, arg3, arg4, arg5
   character(len=2)    :: number
   real(dp)            :: chisq,sum1,sum2,amp,count
   real(dp)            :: nullval
@@ -44,8 +44,8 @@ program template_fitting
 
   if  (iargc() /=4) then
      write(*,*) "Usage:"
-     write(*,*) 'fittemps [Number of bands] [foreground number] [template band number (ex. "34")] [version tag (ex. "v1")]'
-     write(*,*)
+     write(*,*) 'fittemps [Number of bands] [foreground #] [template band # (ex. "34")]'
+     write(*,*) '          [version tag (ex. "v1")] [Foreground # to skip subtracting](optional)' 
      write(*,*) 'Foregrounds: cmb = 1, ame = 2, ff = 3, synch = 4, dust = 5, hcn = 6'
      write(*,*) '             co-1 = 7, co-2 = 8, co-3 = 9 '
      stop
@@ -59,7 +59,12 @@ program template_fitting
   read(arg3,*) band
   call getarg(4, arg4)
   read(arg4,*) version
-
+  if (iargc() == 5) then
+     call getarg(5, arg5)
+     read(arg5,*) skip
+  else
+     skip = 0
+  end if
   output = 'amplitudes/' // trim(version) // '/'
 
   call system('mkdir -p amplitudes/' // trim(version) // '/dust_amplitudes/')
@@ -261,6 +266,9 @@ program template_fitting
         do j = 0, npix-1
            new_map(j,k) = gains(i)*raw_map(j,k)-offsets(i)
            do l=1,9
+              if (l == skip) then
+                 cycle
+              end if
               if (l .ne. fg) then
                  new_map(j,k) = new_map(j,k) - fitter(l,j,k)
               end if
@@ -365,6 +373,9 @@ program template_fitting
         do j = 0, npix-1
            new_map(j,k) = gains(i)*raw_map(j,k)-offsets(i)
            do l=1,9
+              if (l == skip) then
+                 cycle
+              end if
               if (l .ne. fg) then
                  new_map(j,k) = new_map(j,k) - fitter(l,j,k)
               end if
