@@ -275,8 +275,8 @@ program template_fitting
      sum2  = 0.d0
      do k=1,nmaps
         do j=0,npix-1
-           sum1  = sum1 + dust_temp(j,k)*new_map(j,k) ! *mask(j,k)
-           sum2  = sum2 + dust_temp(j,k)**2.d0 ! *mask(j,k)
+           sum1  = sum1 + dust_temp(j,k)*new_map(j,k)*mask(j,k)
+           sum2  = sum2 + dust_temp(j,k)**2.d0*mask(j,k)
         end do
      end do
 
@@ -379,8 +379,8 @@ program template_fitting
      sum2  = 0.d0
      do k=1,nmaps
         do j=0,npix-1
-           sum1  = sum1 + dust_temp(j,k)*new_map(j,k) ! *mask(j,k)
-           sum2  = sum2 + dust_temp(j,k)**2.d0 ! *mask(j,k)
+           sum1  = sum1 + dust_temp(j,k)*new_map(j,k)*mask(j,k)
+           sum2  = sum2 + dust_temp(j,k)**2.d0*mask(j,k)
         end do
      end do
 
