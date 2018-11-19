@@ -205,10 +205,11 @@ program template_fitting
 
   write(*,*) ' Let the fitting begin!'
   call system('rm amplitudes/' // trim(version) // '/maps/*.fits')
-  dust_amp    = trim(output) // 'dust_amplitudes/dust_amplitudes.dat'
 
   if (skip /= 0) then
-     dust_amp = trim(output) // 'dust_amplitdues/dust_amplitudes_' // trim(fgs(skip)) //'.dat'
+     dust_amp = trim(output) // 'dust_amplitudes/dust_amplitudes_' // trim(fgs(skip)) //'.dat'
+  else
+     dust_amp = trim(output) // 'dust_amplitudes/dust_amplitudes.dat'
   end if
 
   ! Begin the template fitting process
