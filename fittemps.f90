@@ -42,7 +42,7 @@ program template_fitting
   fgs(8) = 'co-217'
   fgs(9) = 'co-353'
 
-  if  (iargc() /=5) then
+  if  (iargc() /=4) then
      write(*,*) "Usage:"
      write(*,*) 'fittemps [Number of bands] [foreground #] [template band # (ex. "34")]'
      write(*,*) '          [version tag (ex. "v1")] [Foreground # to skip subtracting](optional)' 
@@ -206,6 +206,10 @@ program template_fitting
   write(*,*) ' Let the fitting begin!'
   call system('rm amplitudes/' // trim(version) // '/maps/*.fits')
   dust_amp    = trim(output) // 'dust_amplitudes/dust_amplitudes.dat'
+
+  if (skip /= 0) then
+     dust_amp = trim(output) // 'dust_amplitdues/dust_amplitudes_' // trim(fgs(skip)) //'.dat'
+  end if
 
   ! Begin the template fitting process
   open(35,file=dust_amp)
