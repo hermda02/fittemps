@@ -43,11 +43,33 @@ program template_fitting
   fgs(9) = 'co-353'
 
   if  (iargc() < 4) then
+     call getarg(1,arg1)
+     if (trim(arg1) == 'help') then
+        write(*,*) 'The fantastic Fitting program (Daniel Herman & Trygve Svalheim 2018) requires'
+        write(*,*) 'the following items in order to run.'
+        write(*,*) ''
+        write(*,*) 'In the parent directory:'
+        write(*,*) '   bands.txt (list of all of the raw maps, in order of band appearance)'
+        write(*,*) '   offset_(version).dat (contains band offsets, in order)'
+        write(*,*) '   gains_(version).dat (contains band gains, in order)'
+        write(*,*) ''
+        write(*,*) 'In sub-directories:'
+        write(*,*) '   ./masks/fg_mask.fits'
+        write(*,*) '   ./maps/(all maps listed in bands.txt)'
+        write(*,*) '   ./templates/(templates for each component for each band)'
+        write(*,*) ''
+        write(*,*) 'An example mask can be found at'
+        write(*,*) '/mn/stornext/d14/Planck1/daniher/data/template_fitting/fg_mask.fits'
+        write(*,*) ''
+        stop
+     end if
      write(*,*) "Usage:"
      write(*,*) 'fittemps [Number of bands] [foreground #] [template band # (ex. "34")]'
      write(*,*) '          [version tag (ex. "v1")] [Foreground # to skip subtracting](optional)' 
      write(*,*) 'Foregrounds: cmb = 1, ame = 2, ff = 3, synch = 4, dust = 5, hcn = 6'
      write(*,*) '             co-1 = 7, co-2 = 8, co-3 = 9 '
+     write(*,*) ''
+     write(*,*) 'For more details, type: fittemps help '
      stop
   endif
 
