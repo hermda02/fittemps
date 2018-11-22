@@ -65,11 +65,13 @@ program template_fitting
      end if
      write(*,*) "Usage:"
      write(*,*) 'fittemps [Number of bands] [foreground #] [template band # (ex. "34")]'
-     write(*,*) '          [version tag (ex. "v1")] [Foreground # to skip subtracting](optional)' 
+     write(*,*) '         [version tag (ex. "v1")] [Foreground # to skip subtracting](optional)' 
+     write(*,*) ''
      write(*,*) 'Foregrounds: cmb = 1, ame = 2, ff = 3, synch = 4, dust = 5, hcn = 6'
      write(*,*) '             co-1 = 7, co-2 = 8, co-3 = 9 '
      write(*,*) ''
      write(*,*) 'For more details, type: fittemps help '
+     write(*,*) ''
      stop
   endif
 
@@ -87,10 +89,10 @@ program template_fitting
   else
      skip = 0
   end if
-  output = 'amplitudes/' // trim(version) // '/'
+  output = 'amplitudes/' // trim(version) // '/' // trim(fgs(fg)) // '/'
 
-  call system('mkdir -p amplitudes/' // trim(version) // '/dust_amplitudes/')
-  call system('mkdir -p amplitudes/' // trim(version) // '/maps/')
+  call system('mkdir -p amplitudes/' // trim(version) // '/' // trim(fgs(fg)) // '/amplitudes/')
+  call system('mkdir -p amplitudes/' // trim(version) // '/' // trim(fgs(fg)) // '/maps/')
   call system('mkdir -p templates/'  // trim(version) // '/' )
   
   temps       = 'templates/' // trim(version) // '/'
@@ -226,12 +228,21 @@ program template_fitting
   nlheader = size(header)
 
   write(*,*) ' Let the fitting begin!'
-  call system('rm amplitudes/' // trim(version) // '/maps/*.fits')
+  write(*,*) ''
+  write(*,*) ' Fitting ' // trim(fgs(fg)) //' to ' // trim(arg3) // 'bands.'
+  if (skip /= 0) then
+     write(*,*) ' Not removing foreground ' // trim(fgs(skip)) // '.'
+  else
+     continue
+  end if
+  write(*,*) ''
+
+  call system('rm amplitudes/' // trim(version) // '/' // trim(fgs(fg)) // '/maps/*.fits')
 
   if (skip /= 0) then
-     dust_amp = trim(output) // 'dust_amplitudes/dust_amplitudes_' // trim(fgs(skip)) //'.dat'
+     dust_amp = trim(output) // 'amplitudes/' // trim(fgs(fg)) // '_amplitudes_' // trim(fgs(skip)) //'.dat'
   else
-     dust_amp = trim(output) // 'dust_amplitudes/dust_amplitudes.dat'
+     dust_amp = trim(output) // 'amplitudes/' // trim(fgs(fg)) // '_amplitudes.dat'
   end if
 
   ! Begin the template fitting process
@@ -310,17 +321,21 @@ program template_fitting
      sum2  = 0.d0
      do k=1,nmaps
         do j=0,npix-1
-           sum1  = sum1 + dust_temp(j,k)*new_map(j,k)*mask(j,k)
-           sum2  = sum2 + dust_temp(j,k)**2.d0*mask(j,k)
+           sum1  = sum1 + fitter(fg,j,k)*new_map(j,k)!*mask(j,k)
+           sum2  = sum2 + fitter(fg,j,k)**2.d0!*mask(j,k)
         end do
      end do
 
      amp = sum1/sum2
 
+     if (amp .lt. 0) then
+        amp = 0
+     end if
+
      do k=1,nmaps
         ! Create mock dust map for a given band
         do j=0,npix-1
-           temp_map(j,k) = amp*dust_temp(j,k)
+           temp_map(j,k) = amp*fitter(fg,j,k)
         end do
      end do
      write(*,*) 'Band ', i, ' weight = ', amp
@@ -418,17 +433,21 @@ program template_fitting
      sum2  = 0.d0
      do k=1,nmaps
         do j=0,npix-1
-           sum1  = sum1 + dust_temp(j,k)*new_map(j,k)*mask(j,k)
-           sum2  = sum2 + dust_temp(j,k)**2.d0*mask(j,k)
+           sum1  = sum1 + fitter(fg,j,k)*new_map(j,k)!*mask(j,k)
+           sum2  = sum2 + fitter(fg,j,k)**2.d0!*mask(j,k)
         end do
      end do
 
      amp = sum1/sum2
 
+     if (amp .lt. 0) then
+        amp = 0
+     end if
+
      ! Create mock dust map for a given band
      do k=1,nmaps
         do j=0,npix-1
-           temp_map(j,k) = amp*dust_temp(j,k)
+           temp_map(j,k) = amp*fitter(fg,j,k)
         end do
      end do
      write(*,*) 'Band ', i, ' weight = ', amp
