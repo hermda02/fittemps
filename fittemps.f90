@@ -97,7 +97,14 @@ program template_fitting
   
   temps       = 'templates/' // trim(version) // '/'
   band_file   = 'bands.txt'
-  mask_file   = 'masks/fg_mask.fits'
+
+  if (trim(fgs(fg))=="synch") then
+     mask_file = 'masks/synchmask.fits'
+  else if (trim(fgs(fg))=="ff") then
+     mask_file = 'masks/ffmask.fits'
+  else 
+     mask_file   = 'masks/fg_mask.fits'
+  end if
   maps        = 'maps/'
   offset_file = 'offset_'//trim(version)//'.dat'
   gain_file   = 'gains_'//trim(version)//'.dat'
