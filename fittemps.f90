@@ -4,12 +4,11 @@ program template_fitting
   use fitstools
   implicit none
 
-  ! This program will take maps for each band, given a commander run and will subtract off all 
-  ! foregrounds excluding the foreground template we want to fit (will make optional). Once this
-  ! has been done, we will use a chi-square minimization to find the best fit of the foreground
-  ! template for a each band.
-
-  ! Try to make it work for a single map first:
+  ! This program will take maps for each band, given a Commander run and will subtract off all 
+  ! foregrounds excluding the foreground template we want to fit. Once this has been done,
+  ! a chi-square minimization is used to find the best fit of the foreground template for a each band.
+  ! An option has been included to skip removing a foreground which can be helpful for finding
+  ! degeneracies in the foreground modeling.
 
   integer(i4b)        :: i,j,k,l,total,nlheader,band,temp,skip
   integer(i4b)        :: nside,ordering,nmaps,npix,fg,order_map,order_temp
@@ -32,16 +31,6 @@ program template_fitting
   character(len=10),  dimension(9)        :: fgs
   character(len=80),  dimension(180)      :: header
 
-  fgs(1) = 'cmb'
-  fgs(2) = 'ame1'
-  fgs(3) = 'ff'
-  fgs(4) = 'synch'
-  fgs(5) = 'dust'
-  fgs(6) = 'hcn'
-  fgs(7) = 'co-100'
-  fgs(8) = 'co-217'
-  fgs(9) = 'co-353'
-
   if  (iargc() < 4) then
      call getarg(1,arg1)
      if (trim(arg1) == 'help') then
@@ -54,12 +43,12 @@ program template_fitting
         write(*,*) '   gains_(version).dat (contains band gains, in order)'
         write(*,*) ''
         write(*,*) 'In sub-directories:'
-        write(*,*) '   ./masks/fg_mask.fits'
+        write(*,*) '   ./masks/* (can be found at the github address)'
         write(*,*) '   ./maps/(all maps listed in bands.txt)'
         write(*,*) '   ./templates/(templates for each component for each band)'
         write(*,*) ''
-        write(*,*) 'An example mask can be found at'
-        write(*,*) '/mn/stornext/d14/Planck1/daniher/data/template_fitting/fg_mask.fits'
+        write(*,*) 'Most of everything you need to run this program can be found at: '
+        write(*,*) '   https://github.com/hermda02/fittemps'
         write(*,*) ''
         stop
      end if
@@ -89,6 +78,17 @@ program template_fitting
   else
      skip = 0
   end if
+
+  fgs(1) = 'cmb'
+  fgs(2) = 'ame1'
+  fgs(3) = 'ff'
+  fgs(4) = 'synch'
+  fgs(5) = 'dust'
+  fgs(6) = 'hcn'
+  fgs(7) = 'co-100'
+  fgs(8) = 'co-217'
+  fgs(9) = 'co-353'
+
   output = 'amplitudes/' // trim(version) // '/' // trim(fgs(fg)) // '/'
 
   call system('mkdir -p amplitudes/' // trim(version) // '/' // trim(fgs(fg)) // '/amplitudes/')
@@ -328,8 +328,8 @@ program template_fitting
      sum2  = 0.d0
      do k=1,nmaps
         do j=0,npix-1
-           sum1  = sum1 + fitter(fg,j,k)*new_map(j,k)!*mask(j,k)
-           sum2  = sum2 + fitter(fg,j,k)**2.d0!*mask(j,k)
+           sum1  = sum1 + fitter(fg,j,k)*new_map(j,k)*mask(j,k)
+           sum2  = sum2 + fitter(fg,j,k)**2.d0*mask(j,k)
         end do
      end do
 
@@ -440,8 +440,8 @@ program template_fitting
      sum2  = 0.d0
      do k=1,nmaps
         do j=0,npix-1
-           sum1  = sum1 + fitter(fg,j,k)*new_map(j,k)!*mask(j,k)
-           sum2  = sum2 + fitter(fg,j,k)**2.d0!*mask(j,k)
+           sum1  = sum1 + fitter(fg,j,k)*new_map(j,k)*mask(j,k)
+           sum2  = sum2 + fitter(fg,j,k)**2.d0*mask(j,k)
         end do
      end do
 
