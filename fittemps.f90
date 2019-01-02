@@ -4,16 +4,24 @@ program template_fitting
   use fitstools
   implicit none
 
+  !----------------------------------------------------------------------------------------
+  !
+  !                  Commander Foreground Template Fitting
+  !                      Daniel Herman & Trygve Svalheim
+  !                       (c) 2018 - All rights reserved
+  !
   ! This program will take maps for each band, given a Commander run and will subtract off all 
   ! foregrounds excluding the foreground template we want to fit. Once this has been done,
-  ! a chi-square minimization is used to find the best fit of the foreground template for a each band.
-  ! An option has been included to skip removing a foreground which can be helpful for finding
-  ! degeneracies in the foreground modeling.
-
+  ! a chi-square minimization is used to find the best fit of the foreground template for 
+  ! each band. An option has been included to skip removing a foreground which can be helpful
+  ! for finding degeneracies in the foreground modeling.
+  !
+  !----------------------------------------------------------------------------------------
+  
   integer(i4b)        :: i,j,k,l,total,nlheader,band,temp,skip
   integer(i4b)        :: nside,ordering,nmaps,npix,fg,order_map,order_temp
   integer(i4b)        :: nside_fg,ordering_fg,nmaps_fg,npix_fg
-  character(len=128)  :: band_file,residual_map,mask_file,temps,maps,offset_file,gain_file
+  character(len=128)  :: band_file,residual_map,mask_file,temps,maps,offset_file,gain_file,ver_dir
   character(len=128)  :: no_fg_map, fg_map, dust_amp, foreground, version, output, arg1, arg2, arg3, arg4, arg5
   character(len=2)    :: number
   real(dp)            :: chisq,sum1,sum2,amp,count
@@ -89,25 +97,24 @@ program template_fitting
   fgs(8) = 'co-217'
   fgs(9) = 'co-353'
 
-  output = 'amplitudes/' // trim(version) // '/' // trim(fgs(fg)) // '/'
-
-  call system('mkdir -p amplitudes/' // trim(version) // '/' // trim(fgs(fg)) // '/amplitudes/')
-  call system('mkdir -p amplitudes/' // trim(version) // '/' // trim(fgs(fg)) // '/maps/')
-  call system('mkdir -p templates/'  // trim(version) // '/' )
-  
-  temps       = 'templates/' // trim(version) // '/'
   band_file   = 'bands.txt'
+  maps        = 'maps/'
+  ver_dir     = trim(version) // '/'
+  offset_file = trim(ver_dir) // 'offset.dat'
+  gain_file   = trim(ver_dir) // 'gains.dat'
+  temps       = trim(ver_dir) // 'templates/' 
+  output      = trim(ver_dir) // trim(fgs(fg)) // '/'
+
+  call system('mkdir -p ./' // trim(output) // '/amplitudes/')
+  call system('mkdir -p ./' // trim(output) // '/maps/')
 
   if (trim(fgs(fg))=="synch") then
      mask_file = 'masks/synchmask.fits'
   else if (trim(fgs(fg))=="ff") then
      mask_file = 'masks/ffmask.fits'
   else 
-     mask_file   = 'masks/fg_mask.fits'
+     mask_file = 'masks/fg_mask.fits'
   end if
-  maps        = 'maps/'
-  offset_file = 'offset_'//trim(version)//'.dat'
-  gain_file   = 'gains_'//trim(version)//'.dat'
 
   allocate(bands(total),gains(total),offsets(total))
   allocate(templates(9,total))
@@ -154,7 +161,7 @@ program template_fitting
   end do
 
   ! Read nside and nmaps from a mask file
-  i=getsize_fits(mask_file,nside=nside,ordering=ordering,nmaps=nmaps)
+  i    = getsize_fits(mask_file,nside=nside,ordering=ordering,nmaps=nmaps)
   npix = nside2npix(nside)
   
   ! Allocate all necessary map/template arrays
@@ -236,15 +243,17 @@ program template_fitting
 
   write(*,*) ' Let the fitting begin!'
   write(*,*) ''
-  write(*,*) ' Fitting ' // trim(fgs(fg)) //' to ' // trim(arg3) // 'bands.'
+  write(*,*) ' Fitting ' // trim(fgs(fg)) //' to ' // trim(arg1) // ' bands.'
+
   if (skip /= 0) then
      write(*,*) ' Not removing foreground ' // trim(fgs(skip)) // '.'
   else
      continue
   end if
+
   write(*,*) ''
 
-  call system('rm amplitudes/' // trim(version) // '/' // trim(fgs(fg)) // '/maps/*.fits')
+  call system('rm ./'// trim(output) // '/maps/*.fits')
 
   if (skip /= 0) then
      dust_amp = trim(output) // 'amplitudes/' // trim(fgs(fg)) // '_amplitudes_' // trim(fgs(skip)) //'.dat'
@@ -258,9 +267,9 @@ program template_fitting
 
      ! Initializing the input/output maps and foreground templates
      write(number,10) i
-     no_fg_map    = trim(output) // 'maps/nofg_band0'// trim(number) //'.fits'
-     fg_map       = trim(output) // 'maps/'//trim(foreground) //'_band0'// trim(number) //'.fits'
-     residual_map = trim(output) // 'maps/no_' // trim(foreground) // '_band0'// trim(number) //'.fits'
+     no_fg_map    = trim(output) // 'maps/no_fg_band0' // trim(number) // '.fits'
+     fg_map       = trim(output) // 'maps/' // trim(foreground) // '_band0' // trim(number) // '.fits'
+     residual_map = trim(output) // 'maps/residual_band0' // trim(number) // '.fits'
 
      call read_bintab(trim(maps) // bands(i), raw_map, npix, nmaps, nullval, anynull, header=header)
      l=getsize_fits(trim(maps) // bands(i),nside=nside,ordering=order_map,nmaps=nmaps)
@@ -368,9 +377,9 @@ program template_fitting
 
      ! Initializing the input/output maps and foreground templates
      write(number,11) i
-     no_fg_map    = trim(output) // 'maps/nofg_band'// trim(number) //'.fits'
+     no_fg_map    = trim(output) // 'maps/no_fg_band'// trim(number) //'.fits'
      fg_map       = trim(output) // 'maps/'//trim(foreground) //'_band'// trim(number) //'.fits'
-     residual_map = trim(output) // 'maps/no_' // trim(foreground) // '_band'// trim(number) //'.fits'
+     residual_map = trim(output) // 'maps/residual_band'// trim(number) //'.fits'
 
      call read_bintab(trim(maps) // bands(i), raw_map, npix, nmaps, nullval, anynull, header=header)
      l=getsize_fits(trim(maps) // bands(i),nside=nside,ordering=order_map,nmaps=nmaps)
