@@ -18,23 +18,24 @@ program template_fitting
   !
   !----------------------------------------------------------------------------------------
   
-  integer(i4b)        :: i,j,k,l,total,nlheader,band,temp,skip
-  integer(i4b)        :: nside,ordering,nmaps,npix,fg,order_map,order_temp
-  integer(i4b)        :: nside_fg,ordering_fg,nmaps_fg,npix_fg
-  character(len=128)  :: band_file,residual_map,mask_file,temps,maps,offset_file,gain_file,ver_dir
-  character(len=128)  :: no_fg_map, fg_map, dust_amp, foreground, version, output, arg1, arg2, arg3, arg4, arg5
+  integer(i4b)        :: i, j, k, l, total, nlheader, band, temp, skip
+  integer(i4b)        :: nside, ordering, nmaps, npix, fg, order_map, order_temp
+  integer(i4b)        :: nside_fg, ordering_fg, nmaps_fg, npix_fg
+  character(len=128)  :: band_file, residual_map, mask_file, temps, maps, offset_file
+  character(len=128)  :: no_fg_map, fg_map, fit_amp, rms_file, gain_file, ver_dir, amp_err
+  character(len=128)  :: foreground, version, output, arg1, arg2, arg3, arg4, arg5
   character(len=2)    :: number
-  real(dp)            :: chisq,sum1,sum2,amp,count
+  real(dp)            :: chisq, sum1, sum2, amp, count, err
   real(dp)            :: nullval
   real(dp)            :: missval = -1.6375d30
   logical(lgt)        :: anynull
   logical(lgt)        :: double_precision
   real(dp), allocatable, dimension(:,:,:) :: fitter
-  real(dp), allocatable, dimension(:,:)   :: raw_map,mask,new_map
-  real(dp), allocatable, dimension(:,:)   :: ame_temp,cmb_temp,ff_temp,synch_temp,dust_temp
-  real(dp), allocatable, dimension(:,:)   :: hcn_temp,co100_temp,co217_temp,co353_temp,temp_map
+  real(dp), allocatable, dimension(:,:)   :: raw_map, mask, new_map, rms_map
+  real(dp), allocatable, dimension(:,:)   :: ame_temp, cmb_temp, ff_temp, synch_temp, dust_temp
+  real(dp), allocatable, dimension(:,:)   :: hcn_temp, co100_temp, co217_temp, co353_temp, temp_map
   real(dp), allocatable, dimension(:)     :: gains,offsets
-  character(len=65),  allocatable         :: bands(:)
+  character(len=65),  allocatable         :: bands(:), rmss(:)
   character(len=100), allocatable         :: templates(:,:)
   character(len=10),  dimension(9)        :: fgs
   character(len=80),  dimension(180)      :: header
@@ -97,6 +98,7 @@ program template_fitting
   fgs(8) = 'co-217'
   fgs(9) = 'co-353'
 
+  rms_file    = 'rms.txt'
   band_file   = 'bands.txt'
   maps        = 'maps/'
   ver_dir     = trim(version) // '/'
@@ -116,7 +118,7 @@ program template_fitting
      mask_file = 'masks/fg_mask.fits'
   end if
 
-  allocate(bands(total),gains(total),offsets(total))
+  allocate(bands(total), rmss(total), gains(total), offsets(total))
   allocate(templates(9,total))
 
 
@@ -154,10 +156,12 @@ program template_fitting
   open(30,file=band_file)
   open(31,file=gain_file)
   open(32,file=offset_file)
+  open(33,file=rms_file)
   do i=1,total
      read(30,fmt='(a)') bands(i)
      read(31,fmt='(F8.6)') gains(i)
      read(32,fmt='(F10.6)') offsets(i)
+     read(33,fmt='(a)') rmss(i)
   end do
 
   ! Read nside and nmaps from a mask file
@@ -166,6 +170,7 @@ program template_fitting
   
   ! Allocate all necessary map/template arrays
   allocate(raw_map(0:npix-1,nmaps))
+  allocate(rms_map(0:npix-1,nmaps))
   allocate(new_map(0:npix-1,nmaps))
   allocate(mask(0:npix-1,nmaps))
   allocate(ame_temp(0:npix-1,nmaps))
@@ -256,13 +261,16 @@ program template_fitting
   call system('rm ./'// trim(output) // '/maps/*.fits')
 
   if (skip /= 0) then
-     dust_amp = trim(output) // 'amplitudes/' // trim(fgs(fg)) // '_amplitudes_' // trim(fgs(skip)) //'.dat'
+     fit_amp = trim(output) // 'amplitudes/' // trim(fgs(fg)) // '_amplitudes_' // trim(fgs(skip)) //'.dat'
   else
-     dust_amp = trim(output) // 'amplitudes/' // trim(fgs(fg)) // '_amplitudes.dat'
+     fit_amp = trim(output) // 'amplitudes/' // trim(fgs(fg)) // '_amplitudes.dat'
   end if
 
+  amp_err = trim(output) // 'amplitudes/' // trim(fgs(fg)) // '_error.dat'
+
   ! Begin the template fitting process
-  open(35,file=dust_amp)
+  open(35,file=fit_amp)
+  open(36,file=amp_err)
   do i = 1,9
 
      ! Initializing the input/output maps and foreground templates
@@ -272,6 +280,7 @@ program template_fitting
      residual_map = trim(output) // 'maps/residual_band0' // trim(number) // '.fits'
 
      call read_bintab(trim(maps) // bands(i), raw_map, npix, nmaps, nullval, anynull, header=header)
+     call read_bintab('rms/' // rmss(i), rms_map, npix, nmaps, nullval, anynull, header=header)
      l=getsize_fits(trim(maps) // bands(i),nside=nside,ordering=order_map,nmaps=nmaps)
      nmaps = 1
      if (ordering /= order_map) then
@@ -335,21 +344,20 @@ program template_fitting
      ! Computes average of dust_template weights (per pixel)
      sum1  = 0.d0
      sum2  = 0.d0
+     err   = 0.d0
      do k=1,nmaps
         do j=0,npix-1
            sum1  = sum1 + fitter(fg,j,k)*new_map(j,k)*mask(j,k)
            sum2  = sum2 + fitter(fg,j,k)**2.d0*mask(j,k)
+           err   = err + fitter(fg,j,k)**2.d0*rms_map(j,k)**2.d0
         end do
      end do
 
      amp = sum1/sum2
-
-     if (amp .lt. 0) then
-        amp = 0
-     end if
+     err = 1.d0/sqrt(err)
 
      do k=1,nmaps
-        ! Create mock dust map for a given band
+        ! Create mock foreground map for a given band
         do j=0,npix-1
            temp_map(j,k) = amp*fitter(fg,j,k)
         end do
@@ -357,10 +365,11 @@ program template_fitting
      write(*,*) 'Band ', i, ' weight = ', amp
      
      write(35,'(I2,F20.8)') i, amp
+     write(36,'(I2,F20.8)') i, err
 
      call write_bintab(temp_map, npix, nmaps, header, nlheader, fg_map)
 
-     ! Compute chi-square of observed residual map vs mock dust map
+     ! Compute chi-square of observed residual map vs mock foreground map
      do k=1,nmaps
         chisq=0.d0
         do j=0,npix-1
@@ -427,9 +436,10 @@ program template_fitting
      ! Subtracting off all other foregrounds
      write(*,*) 'Fitting band '// trim(number)
 
+!     call write_bintab(raw_map, npix, nmaps, header, nlheader, trim(output)//'raw_band'//trim(number)//'.fits')
+
      do k = 1, nmaps
         do j = 0, npix-1
-
            new_map(j,k) = raw_map(j,k)/gains(i)-offsets(i)
            do l=1,9
               if (l == skip) then
@@ -444,23 +454,22 @@ program template_fitting
 
      call write_bintab(new_map, npix, nmaps, header, nlheader, no_fg_map)
 
-     ! Computes average of dust_template weights (per pixel)
+     ! Computes average of foreground_template weights (per pixel)
      sum1  = 0.d0
      sum2  = 0.d0
+     err   = 0.d0
      do k=1,nmaps
         do j=0,npix-1
            sum1  = sum1 + fitter(fg,j,k)*new_map(j,k)*mask(j,k)
            sum2  = sum2 + fitter(fg,j,k)**2.d0*mask(j,k)
+           err   = err + fitter(fg,j,k)**2.d0*rms_map(j,k)**2.d0
         end do
      end do
 
      amp = sum1/sum2
+     err = 1.d0/sqrt(err)
 
-     if (amp .lt. 0) then
-        amp = 0
-     end if
-
-     ! Create mock dust map for a given band
+     ! Create mock foreground map for a given band
      do k=1,nmaps
         do j=0,npix-1
            temp_map(j,k) = amp*fitter(fg,j,k)
@@ -469,6 +478,7 @@ program template_fitting
      write(*,*) 'Band ', i, ' weight = ', amp
      
      write(35,'(I2,F20.8)') i, amp
+     write(36,'(I2,F20.8)') i, err
 
      call write_bintab(temp_map, npix, nmaps, header, nlheader, fg_map)
 
@@ -487,5 +497,6 @@ program template_fitting
   end do
 
   close(35)
+  close(36)
 
 end program template_fitting
